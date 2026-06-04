@@ -39,6 +39,7 @@ struct CPUInfo::Impl
     cpuinfo::CpuInfo info{};
     unsigned int     L1_cache_size = 32768;
     unsigned int     L2_cache_size = 262144;
+    bool             sme_allowed   = true;
 };
 
 CPUInfo &CPUInfo::get()
@@ -111,32 +112,42 @@ bool CPUInfo::has_sve2() const
 
 bool CPUInfo::has_sme() const
 {
-    return _impl->info.has_sme();
+    return _impl->sme_allowed && _impl->info.has_sme();
 }
 
 bool CPUInfo::has_sme2() const
 {
-    return _impl->info.has_sme2();
+    return _impl->sme_allowed && _impl->info.has_sme2();
 }
 
 bool CPUInfo::has_sme_i8i32() const
 {
-    return _impl->info.has_sme_i8i32();
+    return _impl->sme_allowed && _impl->info.has_sme_i8i32();
 }
 
 bool CPUInfo::has_sme_f16f32() const
 {
-    return _impl->info.has_sme_f16f32();
+    return _impl->sme_allowed && _impl->info.has_sme_f16f32();
 }
 
 bool CPUInfo::has_sme_f32f32() const
 {
-    return _impl->info.has_sme_f32f32();
+    return _impl->sme_allowed && _impl->info.has_sme_f32f32();
 }
 
 bool CPUInfo::has_sme_b16f32() const
 {
-    return _impl->info.has_sme_b16f32();
+    return _impl->sme_allowed && _impl->info.has_sme_b16f32();
+}
+
+void CPUInfo::set_sme_allowed(bool is_allowed)
+{
+    _impl->sme_allowed = is_allowed;
+}
+
+bool CPUInfo::is_sme_allowed() const
+{
+    return _impl->sme_allowed;
 }
 
 CPUModel CPUInfo::get_cpu_model() const
@@ -151,7 +162,17 @@ CPUModel CPUInfo::get_cpu_model(unsigned int cpuid) const
 
 cpuinfo::CpuIsaInfo CPUInfo::get_isa() const
 {
-    return _impl->info.isa();
+    cpuinfo::CpuIsaInfo isa = _impl->info.isa();
+    if (!_impl->sme_allowed)
+    {
+        isa.sme        = false;
+        isa.sme2       = false;
+        isa.sme_b16f32 = false;
+        isa.sme_f16f32 = false;
+        isa.sme_f32f32 = false;
+        isa.sme_i8i32  = false;
+    }
+    return isa;
 }
 
 unsigned int CPUInfo::get_L1_cache_size() const
